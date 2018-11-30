@@ -1,6 +1,7 @@
 {
     "require": {
-        "phroute/phroute": "^2.1"
+        "phroute/phroute": "^2.1",
+        "ext-json": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^7"

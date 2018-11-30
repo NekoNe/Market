@@ -3,10 +3,10 @@
 interface Market
 {
     public function CreateCustomer(Customer $customer);
-    public function ReadCustomer(string $id);
+    public function ReadCustomer(string $id): ?Customer;
     public function UpdateCustomer(string $id, callable $updater);
     public function DeleteCustomer(string $id);
-    public function ListCustomers(int $page, int $pageSize);
+    public function ListCustomers(int $offset, int $length): CustomerList;
 
     public function CreateExecutor(Executor $executor);
     public function ReadExecutor(string $id);
@@ -21,11 +21,36 @@ interface Market
 
 class MySQLMarket implements Market
 {
-    public function CreateCustomer(Customer $customer){}
-    public function ReadCustomer(string $id){}
-    public function UpdateCustomer(string $id, callable $updater){}
-    public function DeleteCustomer(string $id){}
-    public function ListCustomers(int $page, int $pageSize){}
+    public function __construct($customersDB, $executorsDB, $tasksDB)
+    {
+    }
+
+    public function CreateCustomer(Customer $customer)
+    {
+
+    }
+
+    public function ReadCustomer(string $id): ?Customer
+    {
+        //return null;
+        return new Customer(); // todo
+    }
+
+    public function UpdateCustomer(string $id, callable $updater)
+    {
+
+    }
+
+    public function DeleteCustomer(string $id)
+    {
+
+    }
+
+    public function ListCustomers(int $offset, int $length): CustomerList {
+        $list = new CustomerList();
+        $list->addCustomer(new Customer()); // todo
+        return $list;
+    }
 
     public function CreateExecutor(Executor $executor){}
     public function ReadExecutor(string $id){}
