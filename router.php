@@ -14,21 +14,21 @@ $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
 // todo: do not handle request with broken parameters, e.g.: balance=12.0Hello
+// todo: it looks like customers/executors handler violates DRY principle. Need some decorators
 
 $collector->get("customers", function() use ($market) {
     $offset = $length = 0;
 
-    if(isset($_GET['offset']) && !empty($_GET)) {
+    if(isset($_GET['offset']) && !empty($_GET['offset'])) {
         $offset = intval($_GET['offset']);
     }
-    if(isset($_GET['length']) && !empty($_GET)) {
+    if(isset($_GET['length']) && !empty($_GET['length'])) {
         $length = intval($_GET['length']);
     }
 
     $list = $market->ListCustomers($offset, $length);
     return json_encode($list);
 });
-
 $collector->post("customers", function() use ($market) {
     if(!isset($_GET['balance']) || empty($_GET['balance'])) {
         header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
@@ -44,43 +44,65 @@ $collector->post("customers", function() use ($market) {
     header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
     return json_encode($customer);
 });
-
 $collector->get("customers/{cid}", function($cid) use ($market) {
     $customer = $market->ReadCustomer($cid);
-    if ($customer == null) {
+    if($customer == null) {
         header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
         die;
     }
     return json_encode($customer);
 });
-
 $collector->delete("customers/{cid}", function($cid) use ($market) {
     $market->DeleteCustomer($cid); // todo: error
     return;
 });
 
-$collector->post("customers/{cid}/tasks", function ($cid){
+// todo:
+$collector->post("customers/{cid}/tasks", function ($cid) {
     return 'create a task from customer '.$cid;
 });
 
-// EXECUTOR methods
-$collector->get("executors", function() {
-    return 'get a list of executors';
+$collector->get("executors", function() use ($market) {
+    $offset = $length = 0;
+
+    if(isset($_GET['offset']) && !empty($_GET['offset'])) {
+        $offset = intval($_GET['offset']);
+    }
+    if(isset($_GET['length']) && !empty($_GET['length'])) {
+        $length = intval($_GET['length']);
+    }
+
+    $list = $market->ListExecutors($offset, $length);
+    return json_encode($list);
 });
-$collector->post("executors", function() {
-    return 'create an executor';
+$collector->post("executors", function() use ($market) {
+    $executor = new Executor();
+    $executor->balance = 0.0;
+
+    $market->CreateExecutor($executor);
+
+    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
+    return json_encode($executor);
 });
-$collector->get("executors/{eid}", function() {
-    return 'get an executor info';
+$collector->get("executors/{eid}", function($eid) use ($market) {
+    $executor = $market->ReadExecutor($eid);
+    if($executor == null) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
+        die;
+    }
+    return json_encode($executor);
 });
-$collector->delete("executors/{eid}", function() {
-    return 'delete an executor';
+$collector->delete("executors/{eid}", function($eid) use ($market) {
+    $market->DeleteExecutor($eid); // todo: error
+    return;
 });
+
+//
 $collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid){
     return 'executor "'.$eid.'" takes task "'.$tid.'"';
 });
 
-// TASK methods
+
 $collector->get("tasks", function() {
     return 'get tasks list';
 });

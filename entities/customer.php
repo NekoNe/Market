@@ -6,7 +6,8 @@ class Customer implements JsonSerializable
 
     private $id;
 
-    public function jsonSerialize() {
+    public function jsonSerialize()
+    {
         return get_object_vars($this);
     }
 }
@@ -20,11 +21,13 @@ class CustomerList implements JsonSerializable
         $this->customers = array();
     }
 
-    public function jsonSerialize() {
+    public function jsonSerialize()
+    {
         return get_object_vars($this);
     }
 
-    public function addCustomer(Customer $customer) {
+    public function addCustomer(Customer $customer)
+    {
         array_push($this->customers, $customer);
     }
 
