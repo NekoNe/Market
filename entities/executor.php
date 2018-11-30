@@ -28,7 +28,7 @@ class ExecutorList implements JsonSerializable
         return get_object_vars($this);
     }
 
-    public function addExecuter(Executor $executor)
+    public function addExecutor(Executor $executor)
     {
         array_push($this->executors, $executor);
     }

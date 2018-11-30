@@ -56,10 +56,20 @@ $collector->delete("customers/{cid}", function($cid) use ($market) {
     $market->DeleteCustomer($cid); // todo: error
     return;
 });
+$collector->post("customers/{cid}/tasks", function ($cid) use ($market) {
+    if(!isset($_GET['value']) || empty($_GET['value'])) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
+        die;
+    }
+    $value = floatval($_GET['value']);
 
-// todo:
-$collector->post("customers/{cid}/tasks", function ($cid) {
-    return 'create a task from customer '.$cid;
+    $task = new Task();
+    $task->value = $value;
+
+    $market->CreateTask($cid, $task); // todo: check result
+
+    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
+    return json_encode($task);
 });
 
 $collector->get("executors", function() use ($market) {
@@ -96,24 +106,38 @@ $collector->delete("executors/{eid}", function($eid) use ($market) {
     $market->DeleteExecutor($eid); // todo: error
     return;
 });
-
-//
-$collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid){
-    return 'executor "'.$eid.'" takes task "'.$tid.'"';
+$collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid) use ($market) {
+    $market->ExecuteTask($eid, $tid);
+    return;
 });
 
+$collector->get("tasks", function() use ($market) {
+    $offset = $length = 0;
 
-$collector->get("tasks", function() {
-    return 'get tasks list';
+    if(isset($_GET['offset']) && !empty($_GET['offset'])) {
+        $offset = intval($_GET['offset']);
+    }
+    if(isset($_GET['length']) && !empty($_GET['length'])) {
+        $length = intval($_GET['length']);
+    }
+
+    $list = $market->ListTasks($offset, $length);
+    return json_encode($list);
 });
-$collector->get("tasks/{tid}", function($tid) {
-    return 'get task '.$tid.' info';
+$collector->get("tasks/{tid}", function($tid) use ($market) {
+    $task = $market->ReadTask($tid);
+    if($task == null) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
+        die;
+    }
+    return json_encode($task);
 });
 
 $dispatcher = new Dispatcher($collector->getData());
 
 try {
-    $response = $dispatcher->dispatch($_SERVER['REQUEST_METHOD'], parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+    $response = $dispatcher->dispatch($_SERVER['REQUEST_METHOD'], parse_url($_SERVER['REQUEST_URI'],
+        PHP_URL_PATH));
 } catch (\Phroute\Phroute\Exception\HttpRouteNotFoundException $e) {
     header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
     die();
