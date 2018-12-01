@@ -4,7 +4,7 @@ class Customer implements JsonSerializable
 {
     public $balance;
 
-    private $id;
+    public $id; // todo: this field should not be visible for api and visible for storage
 
     public function jsonSerialize()
     {

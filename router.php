@@ -9,7 +9,9 @@ include_once "entities/customer.php";
 include_once "entities/executor.php";
 include_once "entities/task.php";
 
-$market = new MySQLMarket(null, null, null);
+include_once "storages/PostgresStorage.php";
+
+$market = new PostgresStorage(null, null, null);
 $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions

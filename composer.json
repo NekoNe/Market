@@ -1,7 +1,8 @@
 {
     "require": {
         "phroute/phroute": "^2.1",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-pgsql": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^7"
