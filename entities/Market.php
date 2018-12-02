@@ -1,6 +1,6 @@
 <?php
 
-// todo: decompose Market interface into CustomerStorage, ExecutorStorage, TaskStorage
+// todo: select appropriate isolation levels
 
 
 class Market
@@ -32,7 +32,7 @@ class Market
     }
     public function DeleteCustomer(string $id)
     {
-        // todo: delete all related tasks
+        // todo: delete all related tasks in transaction
         $this->customers->Delete($id);
     }
     public function ListCustomers(int $offset, int $length): UsersList
@@ -75,7 +75,8 @@ class Market
     }
     public function CreateTask(string $cid, Task $task)
     {
-        // todo: transaction begin
+        $this->customers->BeginTransaction();
+        $this->tasks->BeginTransaction();
 
         $customer = $this->customers->Read($cid);
         if(!$customer) {
@@ -85,12 +86,16 @@ class Market
         $task->customerId = $customer->id;
         $this->tasks->Create($task);
 
-        // todo: transaction commit
+        $this->tasks->CommitTransaction();
+        $this->customers->CommitTransaction();
     }
     public function ExecuteTask(string $eid, string $tid)
     {
-        // todo: transaction begin
+        $this->executors->BeginTransaction();
+        $this->tasks->BeginTransaction();
+        $this->customers->BeginTransaction();
 
+        // todo: check entities existence
         $executor = $this->executors->Read($eid);
         $task = $this->tasks->Read($tid);
         $customer = $this->customers->Read($task->customerId);
@@ -113,7 +118,9 @@ class Market
         });
         $this->tasks->Delete($task->id);
 
-        // todo: transaction commit
+        $this->customers->CommitTransaction();
+        $this->tasks->CommitTransaction();
+        $this->executors->CommitTransaction();
     }
 }
 

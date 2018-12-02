@@ -6,4 +6,7 @@ interface TasksStorage
     public function Read(string $tid): ?Task;
     public function Delete(string $tid);
     public function List(int $offset, int $length): TasksList;
+
+    public function BeginTransaction();
+    public function CommitTransaction();
 }

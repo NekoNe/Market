@@ -56,8 +56,8 @@ EOF;
     public function Create(User $user)
     {
         $query =<<<EOF
-            INSERT INTO {$this->tableName} ({$this->balanceField})
-            VALUES ({$user->balance});
+        INSERT INTO {$this->tableName} ({$this->balanceField})
+        VALUES ({$user->balance});
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
@@ -86,7 +86,7 @@ EOF;
     public function Read(string $id): ?User
     {
         $query =<<<EOF
-            SELECT * FROM {$this->tableName} WHERE {$this->idField} = {$id};
+        SELECT * FROM {$this->tableName} WHERE {$this->idField} = {$id};
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
@@ -118,10 +118,10 @@ EOF;
     {
         $customer = $updater(null); // todo: select and update. pass selected user.
         $query =<<<EOF
-            UPDATE {$this->tableName} 
-                SET {$this->balanceField} = {$customer->balance}
-                WHERE {$this->idField} = {$id}
-                RETURNING *;
+        UPDATE {$this->tableName} 
+            SET {$this->balanceField} = {$customer->balance}
+            WHERE {$this->idField} = {$id}
+            RETURNING *;
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
@@ -145,7 +145,7 @@ EOF;
     public function Delete(string $id)
     {
         $query =<<<EOF
-            DELETE FROM {$this->tableName} WHERE {$this->idField} = {$id};
+        DELETE FROM {$this->tableName} WHERE {$this->idField} = {$id};
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
@@ -170,7 +170,7 @@ EOF;
     public function List(int $offset, int $length): UsersList
     {
         $query =<<<EOF
-            SELECT * FROM {$this->tableName};
+        SELECT * FROM {$this->tableName};
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
@@ -188,6 +188,26 @@ EOF;
             $list->addUser($customer);
         }
         return $list;
+    }
+
+    public function BeginTransaction()
+    {
+        $ret = pg_query($this->db, "BEGIN;");
+        if(!$ret)
+        {
+            echo pg_last_error($this->db);
+            die; // todo
+        }
+    }
+
+    public function CommitTransaction()
+    {
+        $ret = pg_query($this->db, "COMMIT;");
+        if(!$ret)
+        {
+            echo pg_last_error($this->db);
+            die; // todo
+        }
     }
 }
 

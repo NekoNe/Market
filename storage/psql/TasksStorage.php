@@ -145,4 +145,24 @@ EOF;
         }
         return $list;
     }
+
+    public function BeginTransaction()
+    {
+        $ret = pg_query($this->db, "BEGIN;");
+        if(!$ret)
+        {
+            echo pg_last_error($this->db);
+            die; // todo
+        }
+    }
+
+    public function CommitTransaction()
+    {
+        $ret = pg_query($this->db, "END;");
+        if(!$ret)
+        {
+            echo pg_last_error($this->db);
+            die; // todo
+        }
+    }
 }

@@ -7,5 +7,8 @@ interface CustomersStorage
     public function Update(string $id, callable $updater): ?User;
     public function Delete(string $id);
     public function List(int $offset, int $length): UsersList;
+
+    public function BeginTransaction();
+    public function CommitTransaction();
 }
 
