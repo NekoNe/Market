@@ -9,9 +9,18 @@ include_once "entities/customer.php";
 include_once "entities/executor.php";
 include_once "entities/task.php";
 
-include_once "storages/PostgresStorage.php";
+include_once "storage/psql/PostgresStorage.php";
 
-$market = new PostgresStorage(null, null, null);
+
+$customersPsqlCfg = new PsqlConfig();
+$customersPsqlCfg->host         = "host = 127.0.0.1";
+$customersPsqlCfg->port         = "port = 5432";
+$customersPsqlCfg->dbname       = "dbname = customers";
+$customersPsqlCfg->credentials  = "user = market password=123";
+
+$customers = new CustomerPsqlStorage($customersPsqlCfg);
+
+$market = new Market($customers, null, null);
 $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
@@ -52,6 +61,20 @@ $collector->get("customers/{cid}", function($cid) use ($market) {
         header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
         die;
     }
+    return json_encode($customer);
+});
+$collector->put("customers/{cid}", function ($cid) use ($market) {
+    if(!isset($_GET['balance']) || empty($_GET['balance'])) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
+        die;
+    }
+    $balance = floatval($_GET['balance']);
+
+    $customer = $market->UpdateCustomer($cid, function (?Customer $customer) use ($balance) {
+        $customer = new Customer();
+        $customer->balance = $balance;
+        return $customer;
+    });
     return json_encode($customer);
 });
 $collector->delete("customers/{cid}", function($cid) use ($market) {
