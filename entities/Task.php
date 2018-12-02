@@ -3,7 +3,6 @@
 class Task implements JsonSerializable
 {
     public $value;
-
     private $id;
 
     public function jsonSerialize()
@@ -12,13 +11,13 @@ class Task implements JsonSerializable
     }
 }
 
-class TaskList implements JsonSerializable
+class TasksList implements JsonSerializable
 {
-    private $customers;
+    private $tasks;
 
     public function __construct()
     {
-        $this->customers = array();
+        $this->tasks = array();
     }
 
     public function jsonSerialize()
@@ -26,9 +25,8 @@ class TaskList implements JsonSerializable
         return get_object_vars($this);
     }
 
-    public function addCustomer(Task $customer)
+    public function addTask(Task $task)
     {
-        array_push($this->customers, $customer);
+        array_push($this->tasks, $task);
     }
-
 }

@@ -4,23 +4,33 @@ require 'vendor/autoload.php';
 use Phroute\Phroute\RouteCollector;
 use Phroute\Phroute\Dispatcher;
 
-include_once "entities/market.php";
-include_once "entities/customer.php";
-include_once "entities/executor.php";
-include_once "entities/task.php";
+include_once "entities/User.php";
+include_once "entities/UsersList.php";
+include_once "entities/Market.php";
+include_once "entities/Customer.php";
+include_once "entities/Executor.php";
+include_once "entities/Task.php";
 
 include_once "storage/psql/PostgresStorage.php";
 
+// todo: I don't need all this storage instances for all the requests
+
+$psqlHost           = "host = localhost";
+$psqlPort           = "port = 5432";
+$psqlCredentials    = "user = market password=123";
 
 $customersPsqlCfg = new PsqlConfig();
-$customersPsqlCfg->host         = "host = 127.0.0.1";
-$customersPsqlCfg->port         = "port = 5432";
+$customersPsqlCfg->host         = $psqlHost;
+$customersPsqlCfg->port         = $psqlPort;
 $customersPsqlCfg->dbname       = "dbname = customers";
-$customersPsqlCfg->credentials  = "user = market password=123";
+$customersPsqlCfg->credentials  = $psqlCredentials;
+$customers = new UserPsqlStorage($customersPsqlCfg, "customers", Customer::class);
 
-$customers = new CustomerPsqlStorage($customersPsqlCfg);
+$executorsPsqlCfg = clone $customersPsqlCfg;
+$executorsPsqlCfg->dbname       = "dbname = executors";
+$executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
 
-$market = new Market($customers, null, null);
+$market = new Market($customers, null, $executors);
 $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
@@ -70,7 +80,7 @@ $collector->put("customers/{cid}", function ($cid) use ($market) {
     }
     $balance = floatval($_GET['balance']);
 
-    $customer = $market->UpdateCustomer($cid, function (?Customer $customer) use ($balance) {
+    $customer = $market->UpdateCustomer($cid, function (?User $customer) use ($balance) {
         $customer = new Customer();
         $customer->balance = $balance;
         return $customer;
@@ -111,8 +121,14 @@ $collector->get("executors", function() use ($market) {
     return json_encode($list);
 });
 $collector->post("executors", function() use ($market) {
+    if(!isset($_GET['balance']) || empty($_GET['balance'])) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
+        die;
+    }
+    $balance = floatval($_GET['balance']);
+
     $executor = new Executor();
-    $executor->balance = 0.0;
+    $executor->balance = $balance;
 
     $market->CreateExecutor($executor);
 

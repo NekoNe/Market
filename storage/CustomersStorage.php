@@ -2,10 +2,10 @@
 
 interface CustomersStorage
 {
-    public function Create(Customer $customer);
-    public function Read(string $id): ?Customer;
-    public function Update(string $id, callable $updater): ?Customer;
+    public function Create(User $user);
+    public function Read(string $id): ?User;
+    public function Update(string $id, callable $updater): ?User;
     public function Delete(string $id);
-    public function List(int $offset, int $length): CustomerList;
+    public function List(int $offset, int $length): UsersList;
 }
 

@@ -2,6 +2,7 @@
 
 
 include_once __DIR__ . "/../CustomersStorage.php";
+include_once __DIR__ . "/../ExecutorsStorage.php";
 
 class PsqlConfig
 {
@@ -15,8 +16,12 @@ class PsqlConfig
  *  todo: customer and executor looks like the same entity.
  *  May be it should be a single entity User with Customer and Executors role?
  */
+/*
+ *  todo: do not try to access User object fields directly.
+ *  Add interface to access them.
+ */
 
-class CustomerPsqlStorage implements CustomersStorage
+class UserPsqlStorage implements CustomersStorage, ExecutorsStorage
 {
     private $db;
 
@@ -24,15 +29,19 @@ class CustomerPsqlStorage implements CustomersStorage
     private $idField = "id";
     private $blanceField = "balance";
 
-    public function __construct(PsqlConfig $config)
+    private $userType; // todo: this solution looks like a hack
+
+    public function __construct(PsqlConfig $config, string $tableName, $userType)
     {
+        $this->tableName = $tableName;
+        $this->userType = $userType;
+
         $this->db = pg_connect("$config->host $config->port $config->dbname $config->credentials");
         if(!$this->db)
         {
             echo "error: cannot connect to db";
             die; // todo
         }
-
         // todo: select balance type
         $query =<<<EOF
         CREATE TABLE IF NOT EXISTS {$this->tableName} (
@@ -53,11 +62,11 @@ EOF;
     }
 
     // todo: this function mutates $customer. how would I show user this object mutates?
-    public function Create(Customer $customer)
+    public function Create(User $user)
     {
         $query =<<<EOF
             INSERT INTO {$this->tableName} ({$this->blanceField})
-            VALUES ({$customer->balance});
+            VALUES ({$user->balance});
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
@@ -81,10 +90,10 @@ EOF;
         }
 
         $ret = pg_fetch_result($ret, 0);
-        $customer->id = intval($ret);
+        $user->id = intval($ret);
     }
 
-    public function Read(string $id): ?Customer
+    public function Read(string $id): ?User
     {
         $query =<<<EOF
             SELECT * FROM {$this->tableName} WHERE {$this->idField} = {$id};
@@ -107,7 +116,7 @@ EOF;
             echo pg_last_error($this->db);
             die; // todo
         }
-        $customer = new Customer();
+        $customer = new $this->userType();
         $customer->id = $obj->{$this->idField};
         $customer->balance = floatval($obj->{$this->blanceField});
 
@@ -115,7 +124,7 @@ EOF;
     }
 
     // note: UPDATE changes rows order
-    public function Update(string $id, callable $updater): ?Customer
+    public function Update(string $id, callable $updater): ?User
     {
         $customer = $updater(null);
         $query =<<<EOF
@@ -136,7 +145,7 @@ EOF;
             echo pg_last_error($this->db);
             die; // todo
         }
-        $customer = new Customer();
+        $customer = new $this->userType();
         $customer->id = $obj->{$this->idField};
         $customer->balance = floatval($obj->{$this->blanceField});
 
@@ -166,7 +175,7 @@ EOF;
     }
 
     // todo: implement pagination
-    public function List(int $offset, int $length): CustomerList
+    public function List(int $offset, int $length): UsersList
     {
         $query =<<<EOF
             SELECT * FROM {$this->tableName};
@@ -177,14 +186,14 @@ EOF;
             echo pg_last_error($this->db);
             die; // todo
         }
-        $list = new CustomerList();
+        $list = new UsersList();
         while($obj = pg_fetch_object($ret))
         {
-            $customer = new Customer();
+            $customer = new $this->userType();
             $customer->id = $obj->{$this->idField};
             $customer->balance = $obj->{$this->blanceField};
 
-            $list->addCustomer($customer);
+            $list->addUser($customer);
         }
         return $list;
     }

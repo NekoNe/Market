@@ -16,15 +16,15 @@ class Market
         $this->executors = $executorsStorage;
     }
 
-    public function CreateCustomer(Customer $customer)
+    public function CreateCustomer(User $customer)
     {
         $this->customers->Create($customer);
     }
-    public function ReadCustomer(string $id): ?Customer
+    public function ReadCustomer(string $id): ?User
     {
         return $this->customers->Read($id);
     }
-    public function UpdateCustomer(string $id, callable $updater): ?Customer
+    public function UpdateCustomer(string $id, callable $updater): ?User
     {
         return $this->customers->Update($id, $updater);
     }
@@ -32,7 +32,7 @@ class Market
     {
         $this->customers->Delete($id);
     }
-    public function ListCustomers(int $offset, int $length): CustomerList
+    public function ListCustomers(int $offset, int $length): UsersList
     {
         return $this->customers->List($offset, $length);
     }
@@ -43,7 +43,7 @@ class Market
     {
         $this->executors->Create($executor);
     }
-    public function ReadExecutor(string $id): ?Executor
+    public function ReadExecutor(string $id): ?User
     {
         return $this->executors->Read($id);
     }
@@ -55,7 +55,7 @@ class Market
     {
         $this->executors->Delete($id);
     }
-    public function ListExecutors(int $offset, int $length): ExecutorList
+    public function ListExecutors(int $offset, int $length): UsersList
     {
         return $this->executors->List($offset, $length);
     }
@@ -66,7 +66,7 @@ class Market
     {
         return $this->tasks->Read($tid);
     }
-    public function ListTasks(int $offset, int $length): TaskList
+    public function ListTasks(int $offset, int $length): TasksList
     {
         return $this->tasks->List($offset, $length);
     }
