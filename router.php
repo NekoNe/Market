@@ -11,9 +11,11 @@ include_once "entities/Customer.php";
 include_once "entities/Executor.php";
 include_once "entities/Task.php";
 
-include_once "storage/psql/PostgresStorage.php";
+include_once "storage/psql/Config.php";
+include_once "storage/psql/UsersStorage.php";
+include_once "storage/psql/TasksStorage.php";
 
-// todo: I don't need all this storage instances for all the requests
+// todo: I don't need all this storage instances for al the requests
 
 $psqlHost           = "host = localhost";
 $psqlPort           = "port = 5432";
@@ -30,13 +32,18 @@ $executorsPsqlCfg = clone $customersPsqlCfg;
 $executorsPsqlCfg->dbname       = "dbname = executors";
 $executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
 
-$market = new Market($customers, null, $executors);
+$tasksPsqlCfg = clone $customersPsqlCfg;
+$tasksPsqlCfg->dbname           = "dbname = tasks";
+$tasks = new TasksPsqlStorage($tasksPsqlCfg, "tasks");
+
+$market = new Market($customers, $tasks, $executors);
 $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
 // todo: do not handle request with broken parameters, e.g.: balance=12.0Hello
+// todo: validate tasks value is non-negative float
 
-// todo: may be it possible to transform this function into closure?
+// todo: may be it possible to transform this functions into closures?
 function pagination(): array
 {
     $offset = 0;
@@ -45,6 +52,7 @@ function pagination(): array
     if(isset($_GET['offset']) && !empty($_GET['offset'])) {
         $offset = intval($_GET['offset']);
     }
+    // todo: validate
     if(isset($_GET['length']) && !empty($_GET['length'])) {
         $length = intval($_GET['length']);
     }
@@ -57,6 +65,7 @@ function balance(): float
         header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
         die;
     }
+    // todo: validate
     $balance = floatval($_GET['balance']);
     return $balance;
 }
@@ -101,18 +110,7 @@ $collector->delete("customers/{cid}", function($cid) use ($market) {
     $market->DeleteCustomer($cid); // todo: error
     return;
 });
-$collector->post("customers/{cid}/tasks", function ($cid) use ($market) {
-    if(!isset($_GET['value']) || empty($_GET['value'])) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
-        die;
-    }
-    $value = floatval($_GET['value']);
-    $task = new Task();
-    $task->value = $value;
-    $market->CreateTask($cid, $task); // todo: check result
-    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
-    return json_encode($task);
-});
+
 
 $collector->get("executors", function() use ($market) {
     $ret = pagination();
@@ -141,11 +139,24 @@ $collector->delete("executors/{eid}", function($eid) use ($market) {
     $market->DeleteExecutor($eid); // todo: error
     return;
 });
+
+
 $collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid) use ($market) {
     $market->ExecuteTask($eid, $tid);
     return;
 });
-
+$collector->post("customers/{cid}/tasks", function ($cid) use ($market) {
+    if(!isset($_GET['value']) || empty($_GET['value'])) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
+        die;
+    }
+    $value = floatval($_GET['value']);
+    $task = new Task();
+    $task->value = $value;
+    $market->CreateTask($cid, $task); // todo: check result
+    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
+    return json_encode($task);
+});
 $collector->get("tasks", function() use ($market) {
     $ret = pagination();
     $length = $ret['length'];

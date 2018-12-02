@@ -9,6 +9,8 @@ class Market
     private $tasks;
     private $executors;
 
+    private $fee = 0.5;
+
     public function __construct(CustomersStorage $customerStorage, ?TasksStorage $tasksStorage, ?ExecutorsStorage $executorsStorage)
     {
         $this->customers = $customerStorage;
@@ -30,6 +32,7 @@ class Market
     }
     public function DeleteCustomer(string $id)
     {
+        // todo: delete all related tasks
         $this->customers->Delete($id);
     }
     public function ListCustomers(int $offset, int $length): UsersList
@@ -72,11 +75,45 @@ class Market
     }
     public function CreateTask(string $cid, Task $task)
     {
-        // todo: Implement CreateTask() method
+        // todo: transaction begin
+
+        $customer = $this->customers->Read($cid);
+        if(!$customer) {
+            echo 'not found'; // todo
+            die;
+        }
+        $task->customerId = $customer->id;
+        $this->tasks->Create($task);
+
+        // todo: transaction commit
     }
     public function ExecuteTask(string $eid, string $tid)
     {
-        // todo: Implement ExecuteTask() method
+        // todo: transaction begin
+
+        $executor = $this->executors->Read($eid);
+        $task = $this->tasks->Read($tid);
+        $customer = $this->customers->Read($task->customerId);
+
+        if($customer->balance < $task->value)
+        {
+            echo 'customer balance is too low';
+            die; // todo
+        }
+
+        $this->customers->Update($customer->id, function() use ($customer, $task){
+            $updatedCustomer = clone $customer;
+            $updatedCustomer->balance -= $task->value;
+            return $updatedCustomer;
+        });
+        $this->executors->Update($executor->id, function() use ($executor, $task){
+            $updatedExecutor = clone $executor;
+            $updatedExecutor->balance += $task->value * (1.0 - $this->fee);
+            return $updatedExecutor;
+        });
+        $this->tasks->Delete($task->id);
+
+        // todo: transaction commit
     }
 }
 

@@ -2,8 +2,9 @@
 
 class Task implements JsonSerializable
 {
+    public $id;
     public $value;
-    private $id;
+    public $customerId;
 
     public function jsonSerialize()
     {
