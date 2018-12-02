@@ -35,10 +35,12 @@ $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
 // todo: do not handle request with broken parameters, e.g.: balance=12.0Hello
-// todo: it looks like customers/executors handler violates DRY principle. Need some decorators
 
-$collector->get("customers", function() use ($market) {
-    $offset = $length = 0;
+// todo: may be it possible to transform this function into closure?
+function pagination(): array
+{
+    $offset = 0;
+    $length = 10; // default value // todo: move it into some named constant
 
     if(isset($_GET['offset']) && !empty($_GET['offset'])) {
         $offset = intval($_GET['offset']);
@@ -46,22 +48,34 @@ $collector->get("customers", function() use ($market) {
     if(isset($_GET['length']) && !empty($_GET['length'])) {
         $length = intval($_GET['length']);
     }
+    return array('offset' => $offset, 'length' => $length);
+}
 
-    $list = $market->ListCustomers($offset, $length);
-    return json_encode($list);
-});
-$collector->post("customers", function() use ($market) {
+function balance(): float
+{
     if(!isset($_GET['balance']) || empty($_GET['balance'])) {
         header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
         die;
     }
     $balance = floatval($_GET['balance']);
+    return $balance;
+}
+
+$collector->get("customers", function() use ($market) {
+    $ret = pagination();
+    $offset = $ret['offset'];
+    $length = $ret['length'];
+
+    $list = $market->ListCustomers($offset, $length);
+    return json_encode($list);
+});
+$collector->post("customers", function() use ($market) {
+    $balance = balance();
 
     $customer = new Customer();
     $customer->balance = $balance;
 
     $market->CreateCustomer($customer);
-
     header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
     return json_encode($customer);
 });
@@ -74,13 +88,9 @@ $collector->get("customers/{cid}", function($cid) use ($market) {
     return json_encode($customer);
 });
 $collector->put("customers/{cid}", function ($cid) use ($market) {
-    if(!isset($_GET['balance']) || empty($_GET['balance'])) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
-        die;
-    }
-    $balance = floatval($_GET['balance']);
-
+    $balance = balance();
     $customer = $market->UpdateCustomer($cid, function (?User $customer) use ($balance) {
+        // $customer is not used
         $customer = new Customer();
         $customer->balance = $balance;
         return $customer;
@@ -97,41 +107,25 @@ $collector->post("customers/{cid}/tasks", function ($cid) use ($market) {
         die;
     }
     $value = floatval($_GET['value']);
-
     $task = new Task();
     $task->value = $value;
-
     $market->CreateTask($cid, $task); // todo: check result
-
     header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
     return json_encode($task);
 });
 
 $collector->get("executors", function() use ($market) {
-    $offset = $length = 0;
-
-    if(isset($_GET['offset']) && !empty($_GET['offset'])) {
-        $offset = intval($_GET['offset']);
-    }
-    if(isset($_GET['length']) && !empty($_GET['length'])) {
-        $length = intval($_GET['length']);
-    }
-
+    $ret = pagination();
+    $offset = $ret['offset'];
+    $length = $ret['length'];
     $list = $market->ListExecutors($offset, $length);
     return json_encode($list);
 });
 $collector->post("executors", function() use ($market) {
-    if(!isset($_GET['balance']) || empty($_GET['balance'])) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
-        die;
-    }
-    $balance = floatval($_GET['balance']);
-
+    $balance = balance();
     $executor = new Executor();
     $executor->balance = $balance;
-
     $market->CreateExecutor($executor);
-
     header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
     return json_encode($executor);
 });
@@ -153,15 +147,9 @@ $collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid) use ($mark
 });
 
 $collector->get("tasks", function() use ($market) {
-    $offset = $length = 0;
-
-    if(isset($_GET['offset']) && !empty($_GET['offset'])) {
-        $offset = intval($_GET['offset']);
-    }
-    if(isset($_GET['length']) && !empty($_GET['length'])) {
-        $length = intval($_GET['length']);
-    }
-
+    $ret = pagination();
+    $length = $ret['length'];
+    $offset = $ret['offset'];
     $list = $market->ListTasks($offset, $length);
     return json_encode($list);
 });
