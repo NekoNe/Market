@@ -15,6 +15,10 @@ include_once "storage/psql/Config.php";
 include_once "storage/psql/UsersStorage.php";
 include_once "storage/psql/TasksStorage.php";
 
+include_once "exception/ObjectNotFoundException.php";
+include_once "exception/DatabaseException.php";
+include_once "exception/MarketRuntimeException.php";
+
 // todo: I don't need all this storage instances for al the requests
 
 $psqlHost           = "host = localhost";
@@ -26,24 +30,51 @@ $customersPsqlCfg->host         = $psqlHost;
 $customersPsqlCfg->port         = $psqlPort;
 $customersPsqlCfg->dbname       = "dbname = customers";
 $customersPsqlCfg->credentials  = $psqlCredentials;
-$customers = new UserPsqlStorage($customersPsqlCfg, "customers", Customer::class);
 
 $executorsPsqlCfg = clone $customersPsqlCfg;
 $executorsPsqlCfg->dbname       = "dbname = executors";
-$executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
 
 $tasksPsqlCfg = clone $customersPsqlCfg;
 $tasksPsqlCfg->dbname           = "dbname = tasks";
-$tasks = new TasksPsqlStorage($tasksPsqlCfg, "tasks");
+
+
+try {
+    $customers = new UserPsqlStorage($customersPsqlCfg, "customers", Customer::class);
+    $executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
+    $tasks = new TasksPsqlStorage($tasksPsqlCfg, "tasks");
+}
+catch (Exception $e)
+{
+    header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
+    die;
+}
 
 $market = new Market($customers, $tasks, $executors);
+
 $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
 // todo: do not handle request with broken parameters, e.g.: balance=12.0Hello
 // todo: validate tasks value is non-negative float
+// todo: add top-level exception handler: set_exception_handler
 
-// todo: may be it possible to transform this functions into closures?
+function errorHandlingDecorator()
+{
+    $args = func_get_args();
+    $func = array_shift($args);
+
+    try {
+        return call_user_func_array($func, $args);
+    } catch (ObjectNotFoundException $e) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
+        die;
+    } catch (Exception $e) {
+        header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
+        die;
+    }
+}
+
+// todo: make decorator
 function pagination(): array
 {
     $offset = 0;
@@ -59,6 +90,7 @@ function pagination(): array
     return array('offset' => $offset, 'length' => $length);
 }
 
+// todo: make decorator
 function balance(): float
 {
     if(!isset($_GET['balance']) || empty($_GET['balance'])) {
@@ -70,107 +102,127 @@ function balance(): float
     return $balance;
 }
 
-$collector->get("customers", function() use ($market) {
-    $ret = pagination();
-    $offset = $ret['offset'];
-    $length = $ret['length'];
+/*
+ * Customer related requests
+ */
 
-    $list = $market->ListCustomers($offset, $length);
-    return json_encode($list);
+$collector->get("customers", function() use ($market) {
+    return errorHandlingDecorator(function() use ($market) {
+        $ret = pagination();
+        $offset = $ret['offset'];
+        $length = $ret['length'];
+        $list = $market->ListCustomers($offset, $length);
+        return json_encode($list);
+    });
 });
 $collector->post("customers", function() use ($market) {
-    $balance = balance();
-
-    $customer = new Customer();
-    $customer->balance = $balance;
-
-    $market->CreateCustomer($customer);
-    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
-    return json_encode($customer);
-});
-$collector->get("customers/{cid}", function($cid) use ($market) {
-    $customer = $market->ReadCustomer($cid);
-    if($customer == null) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
-        die;
-    }
-    return json_encode($customer);
-});
-$collector->put("customers/{cid}", function ($cid) use ($market) {
-    $balance = balance();
-    $customer = $market->UpdateCustomer($cid, function (?User $customer) use ($balance) {
-        // $customer is not used
+    return errorHandlingDecorator(function() use ($market) {
+        $balance = balance();
         $customer = new Customer();
         $customer->balance = $balance;
-        return $customer;
+        $market->CreateCustomer($customer);
+        header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
+        return json_encode($customer);
     });
-    return json_encode($customer);
+});
+$collector->get("customers/{cid}", function($cid) use ($market) {
+    return errorHandlingDecorator(function() use ($market, $cid) {
+        $customer = $market->ReadCustomer($cid);
+        return json_encode($customer);
+    });
+});
+$collector->put("customers/{cid}", function ($cid) use ($market) {
+    return errorHandlingDecorator(function() use ($market, $cid) {
+        $balance = balance();
+        $customer = $market->UpdateCustomer($cid, function () use ($balance) {
+            $customer = new Customer();
+            $customer->balance = $balance;
+            return $customer;
+        });
+        return json_encode($customer);
+    });
 });
 $collector->delete("customers/{cid}", function($cid) use ($market) {
-    $market->DeleteCustomer($cid); // todo: error
-    return;
+    return errorHandlingDecorator(function() use ($market, $cid) {
+        $market->DeleteCustomer($cid);
+        return;
+    });
 });
 
+/*
+ * Executor related requests
+ */
 
 $collector->get("executors", function() use ($market) {
-    $ret = pagination();
-    $offset = $ret['offset'];
-    $length = $ret['length'];
-    $list = $market->ListExecutors($offset, $length);
-    return json_encode($list);
+    return errorHandlingDecorator(function() use ($market) {
+        $ret = pagination();
+        $offset = $ret['offset'];
+        $length = $ret['length'];
+        $list = $market->ListExecutors($offset, $length);
+        return json_encode($list);
+    });
 });
 $collector->post("executors", function() use ($market) {
-    $balance = balance();
-    $executor = new Executor();
-    $executor->balance = $balance;
-    $market->CreateExecutor($executor);
-    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
-    return json_encode($executor);
+    return errorHandlingDecorator(function() use ($market) {
+        $balance = balance();
+        $executor = new Executor();
+        $executor->balance = $balance;
+        $market->CreateExecutor($executor);
+        header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
+        return json_encode($executor);
+    });
 });
 $collector->get("executors/{eid}", function($eid) use ($market) {
-    $executor = $market->ReadExecutor($eid);
-    if($executor == null) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
-        die;
-    }
-    return json_encode($executor);
+    return errorHandlingDecorator(function() use ($market, $eid) {
+        $executor = $market->ReadExecutor($eid);
+        return json_encode($executor);
+    });
 });
 $collector->delete("executors/{eid}", function($eid) use ($market) {
-    $market->DeleteExecutor($eid); // todo: error
-    return;
+    return errorHandlingDecorator(function() use ($market, $eid) {
+        $market->DeleteExecutor($eid); // todo: error
+        return;
+    });
 });
 
+/*
+ * Task related requests
+ */
 
 $collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid) use ($market) {
-    $market->ExecuteTask($eid, $tid);
-    return;
+    return errorHandlingDecorator(function() use ($market, $eid, $tid) {
+        $market->ExecuteTask($eid, $tid);
+        return;
+    });
 });
 $collector->post("customers/{cid}/tasks", function ($cid) use ($market) {
-    if(!isset($_GET['value']) || empty($_GET['value'])) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
-        die;
-    }
-    $value = floatval($_GET['value']);
-    $task = new Task();
-    $task->value = $value;
-    $market->CreateTask($cid, $task); // todo: check result
-    header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
-    return json_encode($task);
+    return errorHandlingDecorator(function() use ($market, $cid) {
+        if(!isset($_GET['value']) || empty($_GET['value'])) {
+            header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request"); // todo: throw exception
+            die;
+        }
+        $value = floatval($_GET['value']); // todo: write value validator
+        $task = new Task();
+        $task->value = $value;
+        $market->CreateTask($cid, $task);
+        header("{$_SERVER['SERVER_PROTOCOL']} 201 Created");
+        return json_encode($task);
+    });
 });
 $collector->get("tasks", function() use ($market) {
-    $ret = pagination();
-    $length = $ret['length'];
-    $offset = $ret['offset'];
-    $list = $market->ListTasks($offset, $length);
-    return json_encode($list);
+    return errorHandlingDecorator(function() use ($market) {
+        $ret = pagination();
+        $length = $ret['length'];
+        $offset = $ret['offset'];
+        $list = $market->ListTasks($offset, $length);
+        return json_encode($list);
+    });
 });
 $collector->get("tasks/{tid}", function($tid) use ($market) {
-    $task = $market->ReadTask($tid);
-    if($task == null) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
-        die;
-    }
-    return json_encode($task);
+    return errorHandlingDecorator(function() use ($market, $tid) {
+        $task = $market->ReadTask($tid);
+        return json_encode($task);
+    });
 });
 
 $dispatcher = new Dispatcher($collector->getData());

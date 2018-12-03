@@ -19,8 +19,7 @@ class TasksPsqlStorage implements TasksStorage
         $this->db = pg_connect("$config->host $config->port $config->dbname $config->credentials");
         if(!$this->db)
         {
-            echo "error: cannot connect to db";
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
         // todo: set value type related to balance type in user storage
         $query =<<<EOF
@@ -33,8 +32,7 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
     }
 
@@ -52,8 +50,7 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            die;
+            throw new DatabaseException(pg_last_error($this->db));
         }
         $query =<<<EOF
             SELECT currval(pg_get_serial_sequence('{$this->tableName}', '{$this->idField}'));
@@ -61,10 +58,13 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            die;
+            throw new DatabaseException(pg_last_error($this->db));
         }
         $ret = pg_fetch_result($ret, 0);
+        if(!$ret)
+        {
+            throw new DatabaseException(pg_last_error($this->db));
+        }
         $task->id = intval($ret);
     }
 
@@ -76,19 +76,17 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
         $numRows = pg_numrows($ret);
         if($numRows != 1)
         {
-            return null;
+            throw new ObjectNotFoundException("Task:{$tid}");
         }
         $obj = pg_fetch_object($ret, 0);
         if(!$obj)
         {
-            echo pg_last_error($this->db) ;
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
         $task = new Task();
         $task->id = $obj->{$this->idField};
@@ -106,19 +104,16 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
         $deleted = pg_affected_rows($ret);
         if($deleted == 0)
         {
-            echo 'not found'; // todo
-            die;
+            throw new ObjectNotFoundException("Task:{$tid}");
         }
         if($deleted > 1)
         {
-            echo 'internal server error';
-            die; // todo
+            throw new MarketRuntimeException("Task UPDATE :{$tid} affected rows {$deleted}");
         }
     }
 
@@ -130,8 +125,7 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            echo pg_last_error();
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
         $list = new TasksList();
         while($obj = pg_fetch_object($ret))
@@ -151,8 +145,7 @@ EOF;
         $ret = pg_query($this->db, "BEGIN;");
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
     }
 
@@ -161,8 +154,7 @@ EOF;
         $ret = pg_query($this->db, "END;");
         if(!$ret)
         {
-            echo pg_last_error($this->db);
-            die; // todo
+            throw new DatabaseException(pg_last_error($this->db));
         }
     }
 }
