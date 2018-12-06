@@ -18,6 +18,7 @@ include_once "storage/psql/TasksStorage.php";
 include_once "exception/ObjectNotFoundException.php";
 include_once "exception/DatabaseException.php";
 include_once "exception/MarketRuntimeException.php";
+include_once "exception/InvalidInputException.php";
 
 // todo: I don't need all this storage instances for al the requests
 
@@ -63,43 +64,76 @@ function errorHandlingDecorator()
     $args = func_get_args();
     $func = array_shift($args);
 
-    try {
+    try
+    {
         return call_user_func_array($func, $args);
-    } catch (ObjectNotFoundException $e) {
+    }
+    catch (ObjectNotFoundException $e)
+    {
         header("{$_SERVER['SERVER_PROTOCOL']} 404 Not Found");
-        die;
-    } catch (Exception $e) {
+    }
+    catch (InvalidInputException $e)
+    {
+        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
+    }
+    catch (Exception $e)
+    {
         header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
-        die;
+    }
+    die;
+}
+
+function filterNegativeInt($var)
+{
+    if((string)(int)$var !== $var)
+    {
+        throw new InvalidInputException();
+    }
+    if((int) $var < 0)
+    {
+        throw new InvalidInputException();
     }
 }
 
-// todo: make decorator
+// todo: fix copy-paste
 function pagination(): array
 {
     $offset = 0;
     $length = 10; // default value // todo: move it into some named constant
 
     if(isset($_GET['offset']) && !empty($_GET['offset'])) {
-        $offset = intval($_GET['offset']);
+        $offset = filter_input(INPUT_GET, 'offset', FILTER_VALIDATE_INT);
+        if($offset === false) {
+            throw new InvalidInputException();
+        }
+        if($offset < 0) {
+            throw new InvalidInputException();
+        }
     }
-    // todo: validate
     if(isset($_GET['length']) && !empty($_GET['length'])) {
-        $length = intval($_GET['length']);
+        $length = filter_input(INPUT_GET, 'length', FILTER_VALIDATE_INT);
+        if($length === false) {
+            throw new InvalidInputException();
+        }
+        if($length < 0) {
+            throw new InvalidInputException();
+        }
     }
     return array('offset' => $offset, 'length' => $length);
 }
 
-// todo: make decorator
-function balance(): float
+function currencyValue($fieldName): float
 {
-    if(!isset($_GET['balance']) || empty($_GET['balance'])) {
-        header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
-        die;
+    $value = filter_input(INPUT_GET, $fieldName, FILTER_VALIDATE_FLOAT);
+    if($value === false || $value === null)
+    {
+        throw new InvalidInputException();
     }
-    // todo: validate
-    $balance = floatval($_GET['balance']);
-    return $balance;
+    if($value < 0.0) {
+        error_log("{$value} is less than 0.0");
+        throw new InvalidInputException();
+    }
+    return $value;
 }
 
 /*
@@ -117,7 +151,7 @@ $collector->get("customers", function() use ($market) {
 });
 $collector->post("customers", function() use ($market) {
     return errorHandlingDecorator(function() use ($market) {
-        $balance = balance();
+        $balance = currencyValue("balance");
         $customer = new Customer();
         $customer->balance = $balance;
         $market->CreateCustomer($customer);
@@ -127,13 +161,14 @@ $collector->post("customers", function() use ($market) {
 });
 $collector->get("customers/{cid}", function($cid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $cid) {
+        filterNegativeInt($cid);
         $customer = $market->ReadCustomer($cid);
         return json_encode($customer);
     });
 });
 $collector->put("customers/{cid}", function ($cid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $cid) {
-        $balance = balance();
+        $balance = currencyValue("balance");
         $customer = $market->UpdateCustomer($cid, function () use ($balance) {
             $customer = new Customer();
             $customer->balance = $balance;
@@ -144,6 +179,7 @@ $collector->put("customers/{cid}", function ($cid) use ($market) {
 });
 $collector->delete("customers/{cid}", function($cid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $cid) {
+        filterNegativeInt($cid);
         $market->DeleteCustomer($cid);
         return;
     });
@@ -164,7 +200,7 @@ $collector->get("executors", function() use ($market) {
 });
 $collector->post("executors", function() use ($market) {
     return errorHandlingDecorator(function() use ($market) {
-        $balance = balance();
+        $balance = currencyValue("balance");
         $executor = new Executor();
         $executor->balance = $balance;
         $market->CreateExecutor($executor);
@@ -174,13 +210,15 @@ $collector->post("executors", function() use ($market) {
 });
 $collector->get("executors/{eid}", function($eid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $eid) {
+        filterNegativeInt($eid);
         $executor = $market->ReadExecutor($eid);
         return json_encode($executor);
     });
 });
 $collector->delete("executors/{eid}", function($eid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $eid) {
-        $market->DeleteExecutor($eid); // todo: error
+        filterNegativeInt($eid);
+        $market->DeleteExecutor($eid);
         return;
     });
 });
@@ -191,17 +229,16 @@ $collector->delete("executors/{eid}", function($eid) use ($market) {
 
 $collector->post("executors/{eid}/tasks/{tid}", function ($eid, $tid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $eid, $tid) {
+        filterNegativeInt($eid);
+        filterNegativeInt($tid);
         $market->ExecuteTask($eid, $tid);
         return;
     });
 });
 $collector->post("customers/{cid}/tasks", function ($cid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $cid) {
-        if(!isset($_GET['value']) || empty($_GET['value'])) {
-            header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request"); // todo: throw exception
-            die;
-        }
-        $value = floatval($_GET['value']); // todo: write value validator
+        filterNegativeInt($cid);
+        $value = currencyValue("value");
         $task = new Task();
         $task->value = $value;
         $market->CreateTask($cid, $task);
@@ -220,6 +257,7 @@ $collector->get("tasks", function() use ($market) {
 });
 $collector->get("tasks/{tid}", function($tid) use ($market) {
     return errorHandlingDecorator(function() use ($market, $tid) {
+        filterNegativeInt($tid);
         $task = $market->ReadTask($tid);
         return json_encode($task);
     });
