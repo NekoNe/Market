@@ -79,10 +79,6 @@ class Market
         $this->tasks->BeginTransaction();
 
         $customer = $this->customers->Read($cid);
-        if(!$customer) {
-            echo 'not found'; // todo
-            die;
-        }
         $task->customerId = $customer->id;
         $this->tasks->Create($task);
 
@@ -95,15 +91,13 @@ class Market
         $this->tasks->BeginTransaction();
         $this->customers->BeginTransaction();
 
-        // todo: check entities existence
         $executor = $this->executors->Read($eid);
         $task = $this->tasks->Read($tid);
         $customer = $this->customers->Read($task->customerId);
 
         if($customer->balance < $task->value)
         {
-            echo 'customer balance is too low';
-            die; // todo
+            throw new LowBalanceException("Customer {$customer->id} is too low to pay for this task");
         }
 
         $this->customers->Update($customer->id, function() use ($customer, $task){

@@ -113,14 +113,14 @@ EOF;
         }
         if($deleted > 1)
         {
-            throw new MarketRuntimeException("Task UPDATE :{$tid} affected rows {$deleted}");
+            throw new MarketRuntimeException("Task UPDATE:{$tid} affected rows {$deleted}");
         }
     }
 
     public function List(int $offset, int $length): TasksList
     {
         $query =<<<EOF
-        SELECT * FROM {$this->tableName};
+        SELECT * FROM {$this->tableName} LIMIT {$length} OFFSET {$offset};
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)

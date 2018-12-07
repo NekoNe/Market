@@ -164,11 +164,11 @@ EOF;
         }
     }
 
-    // todo: implement pagination
     public function List(int $offset, int $length): UsersList
     {
+        error_log("limit: {$length}, offset: {$offset}");
         $query =<<<EOF
-        SELECT * FROM {$this->tableName};
+        SELECT * FROM {$this->tableName} ORDER BY {$this->idField} LIMIT {$length} OFFSET {$offset};
 EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
