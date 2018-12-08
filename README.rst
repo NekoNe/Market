@@ -17,7 +17,7 @@ API
 ---
 
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
-|          Route                 |  Method  |    Parameters   |       Reply       |     Errors       |        Desctiption         |
+|          Route                 |  Method  |    Parameters   |       Reply       |     Errors       |        Description         |
 +================================+==========+=================+===================+==================+============================+
 |``/customers``                  | GET      |  offset=<int>,  | List of customers | * 200(OK)        | Returns list of            |
 |                                |          |  length=<int>   |                   |                  | customers with paging      |
@@ -28,7 +28,7 @@ API
 |``/customers/{id}``             | GET      |                 |  Customer object  | * 200(OK)        | Returns existing customer  |
 |                                |          |                 |                   | * 404(Not Found) | by one's id                |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
-|``/customers/{id}``             | PUT      |  balance=<int>  | Cusomer object    | * 200(OK)        | Updates customer balance   |
+|``/customers/{id}``             | PUT      |  balance=<int>  | Customer object   | * 200(OK)        | Updates customer balance   |
 |                                |          |                 |                   | * 404(Not Found) |                            |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
 |``/customers/{id}``             | DELETE   |                 |                   | * 200(OK)        | Delete customer with all   |
@@ -37,7 +37,7 @@ API
 |``/customers/{id}/tasks``       | POST     |  value=<int>    | Task object       | * 200(OK)        | Creates new task with a    |
 |                                |          |                 |                   | * 404(Not Found) | given value                |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
-|``/executors``                  | GET      |  offset=<int>,  | List of executos  | * 200(OK)        | Returns list of            |
+|``/executors``                  | GET      |  offset=<int>,  | List of executors | * 200(OK)        | Returns list of            |
 |                                |          |  length=<int>   |                   |                  | executors with paging      |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
 |``/executors``                  | POST     |  balance=<int>  |  Executor object  | * 201(Created)   | Returns new executor       |

@@ -4,6 +4,13 @@ require 'vendor/autoload.php';
 use Phroute\Phroute\RouteCollector;
 use Phroute\Phroute\Dispatcher;
 
+set_error_handler(function ($exception){
+    error_log("unhandled exception {$exception}");
+    header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
+});
+
+header('Content-Type: application/json');
+
 include_once "entities/User.php";
 include_once "entities/UsersList.php";
 include_once "entities/Market.php";
@@ -19,9 +26,9 @@ include_once "exception/ObjectNotFoundException.php";
 include_once "exception/DatabaseException.php";
 include_once "exception/MarketRuntimeException.php";
 include_once "exception/InvalidInputException.php";
+include_once "exception/LowBalanceException.php";
 
-// todo: I don't need all this storage instances for al the requests
-
+// todo: I don't need all this storage instances for all the requests
 $psqlHost           = "host = localhost";
 $psqlPort           = "port = 5432";
 $psqlCredentials    = "user = market password=123";
@@ -38,7 +45,6 @@ $executorsPsqlCfg->dbname       = "dbname = executors";
 $tasksPsqlCfg = clone $customersPsqlCfg;
 $tasksPsqlCfg->dbname           = "dbname = tasks";
 
-
 try {
     $customers = new UserPsqlStorage($customersPsqlCfg, "customers", Customer::class);
     $executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
@@ -51,12 +57,9 @@ catch (Exception $e)
 }
 
 $market = new Market($customers, $tasks, $executors);
-
 $collector = new RouteCollector();
 
 // todo: handle errors, catch exceptions
-// todo: do not handle request with broken parameters, e.g.: balance=12.0Hello
-// todo: validate tasks value is non-negative float
 // todo: add top-level exception handler: set_exception_handler
 
 function errorHandlingDecorator()
@@ -75,6 +78,10 @@ function errorHandlingDecorator()
     catch (InvalidInputException $e)
     {
         header("{$_SERVER['SERVER_PROTOCOL']} 400 Bad Request");
+    }
+    catch (LowBalanceException $e)
+    {
+        header("{$_SERVER['SERVER_PROTOCOL']} 409 Conflict");
     }
     catch (Exception $e)
     {
@@ -95,7 +102,6 @@ function filterNegativeInt($var)
     }
 }
 
-// todo: fix copy-paste
 function pagination(): array
 {
     $offset = 0;
@@ -109,7 +115,7 @@ function pagination(): array
         if($offset < 0) {
             throw new InvalidInputException();
         }
-    }
+    } // todo: fix copy-paste
     if(isset($_GET['length']) && !empty($_GET['length'])) {
         $length = filter_input(INPUT_GET, 'length', FILTER_VALIDATE_INT);
         if($length === false) {
@@ -122,6 +128,7 @@ function pagination(): array
     return array('offset' => $offset, 'length' => $length);
 }
 
+// todo: do not use float values. Use money class
 function currencyValue($fieldName): float
 {
     $value = filter_input(INPUT_GET, $fieldName, FILTER_VALIDATE_FLOAT);
