@@ -11,10 +11,12 @@ class TasksPsqlStorage implements TasksStorage
     private $idField = "id";
     private $valueField = "value";
     private $customerIdField = "customer";
+    private $listLenMax;
 
-    public function __construct(PsqlConfig $config, string $tableName)
+    public function __construct(PsqlConfig $config, string $tableName, int $listLenMax = 100)
     {
         $this->tableName = $tableName;
+        $this->listLenMax = $listLenMax;
 
         $this->db = pg_connect("$config->host $config->port $config->dbname $config->credentials");
         if(!$this->db)
@@ -119,6 +121,10 @@ EOF;
 
     public function List(int $offset, int $length): TasksList
     {
+        if($length > $this->listLenMax)
+        {
+            $length = $this->listLenMax;
+        }
         $query =<<<EOF
         SELECT * FROM {$this->tableName} LIMIT {$length} OFFSET {$offset};
 EOF;

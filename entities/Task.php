@@ -14,6 +14,7 @@ class Task implements JsonSerializable
 
 class TasksList implements JsonSerializable
 {
+    // todo: add list len and offset
     private $tasks;
 
     public function __construct()

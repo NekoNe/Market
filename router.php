@@ -59,9 +59,6 @@ catch (Exception $e)
 $market = new Market($customers, $tasks, $executors);
 $collector = new RouteCollector();
 
-// todo: handle errors, catch exceptions
-// todo: add top-level exception handler: set_exception_handler
-
 function errorHandlingDecorator()
 {
     $args = func_get_args();
@@ -70,6 +67,10 @@ function errorHandlingDecorator()
     try
     {
         return call_user_func_array($func, $args);
+    }
+    catch (DatabaseException $e)
+    {
+        header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
     }
     catch (ObjectNotFoundException $e)
     {

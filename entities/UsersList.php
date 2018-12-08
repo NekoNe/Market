@@ -4,6 +4,7 @@ class UsersList implements JsonSerializable
 {
     // todo: select name according to object type it stores
     // todo: or just made this class an abstract one
+    // todo: add list len and offset
     private $users;
 
     public function __construct()
