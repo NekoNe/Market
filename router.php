@@ -208,7 +208,14 @@ $collector->get("executors", function() use ($market) {
 });
 $collector->post("executors", function() use ($market) {
     return errorHandlingDecorator(function() use ($market) {
-        $balance = currencyValue("balance");
+        if(isset($_GET['balance']) && !empty($_GET['balance']))
+        {
+            $balance = currencyValue("balance");
+        }
+        else
+        {
+            $balance = 0;
+        }
         $executor = new Executor();
         $executor->balance = $balance;
         $market->CreateExecutor($executor);

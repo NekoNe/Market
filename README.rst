@@ -48,8 +48,8 @@ All responses are json objects or empty objects.
 |``/executors/{id}``             | GET      |                 | Executor object   | * 200(OK)        | Returns existing executor  |
 |                                |          |                 |                   | * 404(Not Found) | by one's id                |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
-|``/executors/{id}``             | DELETE   |                 |                   | * 200(OK)        | Delete executor with all   |
-|                                |          |                 |                   | * 404(Not Found) | one's tasks                |
+|``/executors/{id}``             | DELETE   |                 |                   | * 200(OK)        | Delete executor            |
+|                                |          |                 |                   | * 404(Not Found) |                            |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
 |``/executors/{id}/tasks/{id}``  | POST     |                 |                   | * 200(OK)        | Transfers money from       |
 |                                |          |                 |                   | * 404(Not Found) | to executor. Executor pays |
@@ -89,9 +89,56 @@ Objects
   }
   
 
+Run
+---
+
+> php -S localhost:8000 router.php
+
 Examples
 --------
 
+**Create new customer**
 
-Run
----
+.. code-block::
+
+  $ curl -X POST 'localhost:8000/customers?balance=1000'
+  {"id":1,"balance":1000}
+
+**List customers**
+
+.. code-block::
+
+  $ curl 'localhost:8000/customers'
+  {"users":[{"id":"1","balance":"1000"}]}
+
+**Update customer balance**
+
+.. code-block::
+
+  $ curl -X PUT 'localhost:8000/customers/1?balance=5000'
+  {"id":"1","balance":5000}
+
+**Create new executor**
+
+.. code-block::
+
+  $ curl -X POST 'localhost:8000/executors'
+  {"id":1,"balance":0}
+
+**Create new task**
+
+.. code-block::
+
+  $ curl -X POST 'localhost:8000/customers/1/tasks?value=10'
+  {"id":1,"value":10,"customerId":"1"}
+
+**Execute task**
+
+.. code-block::
+
+  $ curl -X POST 'localhost:8000/executors/1/tasks/1'
+  $ curl 'localhost:8000/customers'
+  {"users":[{"id":"1","balance":"4990"}]}
+  $ curl 'localhost:8000/executors/1'
+  {"id":"1","balance":5}
+
