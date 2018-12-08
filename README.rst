@@ -51,11 +51,43 @@ API
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
 |``/executors/{id}/tasks/{id}``  | POST     |                 |                   | * 200(OK)        | Transfers money from       |
 |                                |          |                 |                   | * 404(Not Found) | to executor. Executor pays |
-|                                |          |                 |                   | * 404(Not Found) | fee. Task is deleted.      |
+|                                |          |                 |                   |                  | fee. Task is deleted.      |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
 |``/tasks``                      | GET      | length=<int>,   | List of tasks     | * 200(OK)        | Returns list of            |
 |                                |          | offset=<int>    |                   |                  | tasks with paging          |
 +--------------------------------+----------+-----------------+-------------------+------------------+----------------------------+
 
+Objects
+-------
+
+**Customer**::
+
+  {
+    "id": <int>,
+    "balance: <int>
+  }
 
 
+**Executor**::
+
+  {
+    "id": <int>,
+    "balance: <int>
+  }
+  
+  
+**Task**::
+
+  {
+    "id": <int>,
+    "value": <int>,
+    "customer": <int>
+  }
+  
+
+Examples
+--------
+
+
+Run
+---
