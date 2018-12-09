@@ -1,0 +1,4 @@
+FROM postgres:11.1
+
+EXPOSE 5432
+COPY scripts/init-market-db-psql.sh /docker-entrypoint-initdb.d/init-user-db.sh

@@ -1,0 +1,9 @@
+FROM mysql:8.0.13
+
+ENV MYSQL_ROOT_PASSWORD="123"
+ENV MYSQL_USER="market"
+ENV MYSQL_PASSWORD="123"
+ENV MYSQL_DATABASE="tasks"
+
+EXPOSE 3306
+ENTRYPOINT ["docker-entrypoint.sh", "--default-authentication-plugin=mysql_native_password"]

@@ -49,7 +49,7 @@ $tasksPsqlCfg = clone $customersPsqlCfg;
 $tasksPsqlCfg->dbname           = "dbname = tasks";
 
 $tasksMysqlCfg = new MySQLConfig();
-$tasksMysqlCfg->host        = "localhost";
+$tasksMysqlCfg->host        = "127.0.0.1";
 $tasksMysqlCfg->port        = "3306";
 $tasksMysqlCfg->dbname      = "tasks";
 $tasksMysqlCfg->user        = "market";

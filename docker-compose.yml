@@ -1,0 +1,27 @@
+version: "3"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nekone/market-app:latest
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgresql
+      - mysql
+    links:
+      - postgresql
+      - mysql
+  mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nekone/market-mysql:latest
+  postgresql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nekone/market-postgresql:lastest
+
