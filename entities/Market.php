@@ -9,7 +9,7 @@ class Market
     private $tasks;
     private $executors;
 
-    private $fee = 0.5;
+    private $fee = 30; // percents
 
     public function __construct(CustomersStorage $customerStorage, ?TasksStorage $tasksStorage, ?ExecutorsStorage $executorsStorage)
     {
@@ -100,14 +100,17 @@ class Market
             throw new LowBalanceException("Customer {$customer->id} is too low to pay for this task");
         }
 
+        $executorShare = ($task->value * (100 - $this->fee)) / 100;
+        $marketShare = $task->value - $executorShare;
+
         $this->customers->Update($customer->id, function() use ($customer, $task){
             $updatedCustomer = clone $customer;
             $updatedCustomer->balance -= $task->value;
             return $updatedCustomer;
         });
-        $this->executors->Update($executor->id, function() use ($executor, $task){
+        $this->executors->Update($executor->id, function() use ($executor, $task, $executorShare){
             $updatedExecutor = clone $executor;
-            $updatedExecutor->balance += $task->value * (1.0 - $this->fee);
+            $updatedExecutor->balance += $executorShare;
             return $updatedExecutor;
         });
         $this->tasks->Delete($task->id);

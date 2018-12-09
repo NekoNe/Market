@@ -142,16 +142,16 @@ function pagination(): array
     return array('offset' => $offset, 'length' => $length);
 }
 
-// todo: do not use float values. Use money class
+// todo: Use money class
 function currencyValue($fieldName): float
 {
-    $value = filter_input(INPUT_GET, $fieldName, FILTER_VALIDATE_FLOAT);
+    $value = filter_input(INPUT_GET, $fieldName, FILTER_VALIDATE_INT);
     if($value === false || $value === null)
     {
         throw new InvalidInputException();
     }
-    if($value < 0.0) {
-        error_log("{$value} is less than 0.0");
+    if($value < 0) {
+        error_log("{$value} is less than 0");
         throw new InvalidInputException();
     }
     return $value;

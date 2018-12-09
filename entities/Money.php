@@ -61,7 +61,7 @@ class Money
 
     public function RatePercents(int $percents): Money
     {
-        $onePercent = intdiv($this->amount, 100);
-        return new Money($onePercent * $percents);
+        $onePercent = intdiv($this->amount * $percents, 100);
+        return new Money($onePercent);
     }
 }
