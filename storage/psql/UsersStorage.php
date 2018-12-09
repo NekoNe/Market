@@ -28,11 +28,10 @@ class UserPsqlStorage implements CustomersStorage, ExecutorsStorage
         {
             throw new DatabaseException(pg_last_error($this->db));
         }
-        // todo: select balance type
         $query =<<<EOF
         CREATE TABLE IF NOT EXISTS {$this->tableName} (
           {$this->idField}     serial primary key,
-          {$this->balanceField} numeric(16,0) 
+          {$this->balanceField} bigint 
         );
 EOF;
         $ret = pg_query($this->db, $query);

@@ -21,12 +21,11 @@ class TasksPsqlStorage implements TasksStorage
         {
             throw new DatabaseException(pg_last_error($this->db));
         }
-        // todo: set value type related to balance type in user storage
         $query =<<<EOF
         CREATE TABLE IF NOT EXISTS {$this->tableName} (
           {$this->idField} bigserial primary key,
           {$this->customerIdField} integer,
-          {$this->valueField} numeric(16,0)
+          {$this->valueField} bigint 
         );
 EOF;
         $ret = pg_query($this->db, $query);
