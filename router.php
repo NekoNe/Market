@@ -4,7 +4,7 @@ require 'vendor/autoload.php';
 use Phroute\Phroute\RouteCollector;
 use Phroute\Phroute\Dispatcher;
 
-set_error_handler(function ($exception){
+set_exception_handler(function ($exception){
     error_log("unhandled exception {$exception}");
     header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
 });
@@ -21,6 +21,9 @@ include_once "entities/Task.php";
 include_once "storage/psql/Config.php";
 include_once "storage/psql/UsersStorage.php";
 include_once "storage/psql/TasksStorage.php";
+
+include_once "storage/mysql/Config.php";
+include_once "storage/mysql/TasksStorage.php";
 
 include_once "exception/ObjectNotFoundException.php";
 include_once "exception/DatabaseException.php";
@@ -45,13 +48,22 @@ $executorsPsqlCfg->dbname       = "dbname = executors";
 $tasksPsqlCfg = clone $customersPsqlCfg;
 $tasksPsqlCfg->dbname           = "dbname = tasks";
 
+$tasksMysqlCfg = new MySQLConfig();
+$tasksMysqlCfg->host        = "localhost";
+$tasksMysqlCfg->port        = "3306";
+$tasksMysqlCfg->dbname      = "tasks";
+$tasksMysqlCfg->user        = "market";
+$tasksMysqlCfg->password    = "123";
+
 try {
     $customers = new UserPsqlStorage($customersPsqlCfg, "customers", Customer::class);
     $executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
-    $tasks = new TasksPsqlStorage($tasksPsqlCfg, "tasks");
+    //$tasks = new TasksPsqlStorage($tasksPsqlCfg, "tasks");
+    $tasks = new TasksMySqlStorage($tasksMysqlCfg, "tasks");
 }
 catch (Exception $e)
 {
+    error_log($e);
     header("{$_SERVER['SERVER_PROTOCOL']} 500 Internal Server Error");
     die;
 }
@@ -107,6 +119,7 @@ function pagination(): array
 {
     $offset = 0;
     $length = 10; // default value // todo: move it into some named constant
+    // todo: zero value length leads db to read all records. Limit it with listLenMax;
 
     if(isset($_GET['offset']) && !empty($_GET['offset'])) {
         $offset = filter_input(INPUT_GET, 'offset', FILTER_VALIDATE_INT);

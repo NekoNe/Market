@@ -26,7 +26,7 @@ class TasksMySqlStorage implements TasksStorage
         CREATE TABLE IF NOT EXISTS {$this->tableName} (
           {$this->idField} BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
           {$this->customerIdField} integer,
-          {$this->valueField} BIGIN UNSIGNED
+          {$this->valueField} BIGINT UNSIGNED
         );
 EOF;
         $ret = mysqli_query($this->db, $query);
@@ -75,7 +75,7 @@ EOF;
         {   // todo: handle numRows > 1 and numRows == 0
             throw new ObjectNotFoundException("Task:{$tid}");
         }
-        $obj = mysqli_fetch_object($ret, 0);
+        $obj = mysqli_fetch_object($ret);
         if(!$obj)
         {
             throw new DatabaseException(mysqli_error($this->db));
@@ -93,12 +93,12 @@ EOF;
         DELETE FROM {$this->tableName}
         WHERE {$this->idField} = {$tid};
 EOF;
-        $ret = pg_query($this->db, $query);
+        $ret = mysqli_query($this->db, $query);
         if(!$ret)
         {
             throw new DatabaseException(mysqli_error($this->db));
         }
-        $deleted = mysqli_affected_rows($ret);
+        $deleted = mysqli_affected_rows($this->db);
         if($deleted == 0)
         {
             throw new ObjectNotFoundException("Task:{$tid}");
@@ -118,7 +118,7 @@ EOF;
         $query =<<<EOF
         SELECT * FROM {$this->tableName} LIMIT {$offset}, {$length};
 EOF;
-        $ret = mysqli_query($this->db);
+        $ret = mysqli_query($this->db, $query);
         if(!$ret)
         {
             throw new DatabaseException(mysqli_error($this->db));

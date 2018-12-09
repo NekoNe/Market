@@ -50,6 +50,7 @@ EOF;
     }
 
     // todo: this function mutates $customer. how would I show user this object is mutated?
+    // todo: do not mutate object. return the new one.
     public function Create(User $user)
     {
         $query =<<<EOF
