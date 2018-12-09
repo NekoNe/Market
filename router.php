@@ -55,6 +55,11 @@ $tasksMysqlCfg->dbname      = "tasks";
 $tasksMysqlCfg->user        = "market";
 $tasksMysqlCfg->password    = "123";
 
+
+define("PAGE_LEN_MAX", 100);
+define("PAGE_LEN_DEF", 10);
+define("MARKET_FEE_PERCENTS", 30);
+
 try {
     $customers = new UserPsqlStorage($customersPsqlCfg, "customers", Customer::class);
     $executors = new UserPsqlStorage($executorsPsqlCfg, "executors", Executor::class);
@@ -68,7 +73,7 @@ catch (Exception $e)
     die;
 }
 
-$market = new Market($customers, $tasks, $executors);
+$market = new Market($customers, $tasks, $executors, MARKET_FEE_PERCENTS);
 $collector = new RouteCollector();
 
 function errorHandlingDecorator()
@@ -118,8 +123,7 @@ function filterNegativeInt($var)
 function pagination(): array
 {
     $offset = 0;
-    $length = 10; // default value // todo: move it into some named constant
-    // todo: zero value length leads db to read all records. Limit it with listLenMax;
+    $length = PAGE_LEN_DEF;
 
     if(isset($_GET['offset']) && !empty($_GET['offset'])) {
         $offset = filter_input(INPUT_GET, 'offset', FILTER_VALIDATE_INT);
@@ -129,15 +133,22 @@ function pagination(): array
         if($offset < 0) {
             throw new InvalidInputException();
         }
-    } // todo: fix copy-paste
+    }
+    // todo: fix copy-paste
     if(isset($_GET['length']) && !empty($_GET['length'])) {
         $length = filter_input(INPUT_GET, 'length', FILTER_VALIDATE_INT);
-        if($length === false) {
+        if($length === false)
+        {
             throw new InvalidInputException();
         }
-        if($length < 0) {
+        if($length < 0)
+        {
             throw new InvalidInputException();
         }
+    }
+    if($length == 0 || $length > PAGE_LEN_MAX)
+    {
+        $length = PAGE_LEN_MAX;
     }
     return array('offset' => $offset, 'length' => $length);
 }

@@ -6,16 +6,14 @@ class TasksMySqlStorage implements TasksStorage
 {
     private $db;
     private $tableName;
-    private $listLenMax;
 
     private $idField = "id";
     private $valueField = "value";
     private $customerIdField = "customer";
 
-    public function __construct(MySQLConfig $config, string $tableName, int $listLenMax = 100)
+    public function __construct(MySQLConfig $config, string $tableName)
     {
         $this->tableName = $tableName;
-        $this->listLenMax = $listLenMax;
 
         $this->db = mysqli_connect($config->host, $config->user, $config->password, $config->dbname, $config->port);
         if(!$this->db)
@@ -111,10 +109,6 @@ EOF;
 
     public function List(int $offset, int $length): TasksList
     {
-        if($length > $this->listLenMax)
-        {
-            $length = $this->listLenMax;
-        }
         $query =<<<EOF
         SELECT * FROM {$this->tableName} LIMIT {$offset}, {$length};
 EOF;

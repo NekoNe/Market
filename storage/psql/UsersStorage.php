@@ -15,15 +15,13 @@ class UserPsqlStorage implements CustomersStorage, ExecutorsStorage
     private $tableName;
     private $idField = "id";
     private $balanceField = "balance";
-    private $listLenMax;
 
     private $userType; // todo: this solution looks like a hack
 
-    public function __construct(PsqlConfig $config, string $tableName, $userType, $listLenMax = 100)
+    public function __construct(PsqlConfig $config, string $tableName, $userType)
     {
         $this->tableName = $tableName;
         $this->userType = $userType;
-        $this->listLenMax = $listLenMax;
 
         $this->db = pg_connect("$config->host $config->port $config->dbname $config->credentials");
         if(!$this->db)
@@ -169,10 +167,6 @@ EOF;
 
     public function List(int $offset, int $length): UsersList
     {
-        if($length > $this->listLenMax)
-        {
-            $length = $this->listLenMax;
-        }
         $query =<<<EOF
         SELECT * FROM {$this->tableName} ORDER BY {$this->idField} LIMIT {$length} OFFSET {$offset};
 EOF;

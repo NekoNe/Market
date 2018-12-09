@@ -9,13 +9,14 @@ class Market
     private $tasks;
     private $executors;
 
-    private $fee = 30; // percents
+    private $fee;
 
-    public function __construct(CustomersStorage $customerStorage, ?TasksStorage $tasksStorage, ?ExecutorsStorage $executorsStorage)
+    public function __construct(CustomersStorage $customerStorage, ?TasksStorage $tasksStorage, ?ExecutorsStorage $executorsStorage, int $fee)
     {
         $this->customers = $customerStorage;
         $this->tasks = $tasksStorage;
         $this->executors = $executorsStorage;
+        $this->fee = $fee;
     }
 
     public function CreateCustomer(User $customer)
