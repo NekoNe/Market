@@ -194,7 +194,7 @@ EOF;
 
     public function BeginTransaction()
     {
-        $ret = pg_query($this->db, "BEGIN;");
+        $ret = pg_query($this->db, "BEGIN TRANSACTION;");
         if(!$ret)
         {
             throw new DatabaseException(pg_last_error($this->db));

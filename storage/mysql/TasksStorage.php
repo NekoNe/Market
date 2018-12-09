@@ -2,45 +2,43 @@
 
 include_once __DIR__ ."/../TasksStorage.php";
 
-
-class TasksPsqlStorage implements TasksStorage
+class TasksMySqlStorage implements TasksStorage
 {
     private $db;
-
     private $tableName;
+    private $listLenMax;
+
     private $idField = "id";
     private $valueField = "value";
     private $customerIdField = "customer";
-    private $listLenMax;
 
-    public function __construct(PsqlConfig $config, string $tableName, int $listLenMax = 100)
+    public function __construct(MySQLConfig $config, string $tableName, int $listLenMax = 100)
     {
         $this->tableName = $tableName;
         $this->listLenMax = $listLenMax;
 
-        $this->db = pg_connect("$config->host $config->port $config->dbname $config->credentials");
+        $this->db = mysqli_connect($config->host, $config->user, $config->password, $config->dbname, $config->port);
         if(!$this->db)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_connect_error());
         }
-        // todo: set value type related to balance type in user storage
         $query =<<<EOF
         CREATE TABLE IF NOT EXISTS {$this->tableName} (
-          {$this->idField} bigserial primary key,
+          {$this->idField} BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
           {$this->customerIdField} integer,
-          {$this->valueField} numeric(16,0)
+          {$this->valueField} BIGIN UNSIGNED
         );
 EOF;
-        $ret = pg_query($this->db, $query);
+        $ret = mysqli_query($this->db, $query);
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
     }
 
     public function __destruct()
     {
-        pg_close($this->db);
+        mysqli_close($this->db);
     }
 
     public function Create(Task $task)
@@ -49,25 +47,17 @@ EOF;
         INSERT INTO {$this->tableName} ({$this->customerIdField},{$this->valueField})
         VALUES ({$task->customerId}, {$task->value});
 EOF;
-        $ret = pg_query($this->db, $query);
+        $ret = mysqli_query($this->db, $query);
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
-        $query =<<<EOF
-            SELECT currval(pg_get_serial_sequence('{$this->tableName}', '{$this->idField}'));
-EOF;
-        $ret = pg_query($this->db, $query);
-        if(!$ret)
+        $id = mysqli_insert_id($this->db);
+        if($id == 0)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+           throw new DatabaseException("mysqli: no new autoincrement value");
         }
-        $ret = pg_fetch_result($ret, 0);
-        if(!$ret)
-        {
-            throw new DatabaseException(pg_last_error($this->db));
-        }
-        $task->id = intval($ret);
+        $task->id = $id;
     }
 
     public function Read(string $tid): ?Task
@@ -75,20 +65,20 @@ EOF;
         $query =<<<EOF
         SELECT * FROM {$this->tableName} WHERE {$this->idField} = {$tid};
 EOF;
-        $ret = pg_query($this->db, $query);
+        $ret = mysqli_query($this->db, $query);
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
-        $numRows = pg_numrows($ret);
+        $numRows = mysqli_num_rows($ret);
         if($numRows != 1)
         {   // todo: handle numRows > 1 and numRows == 0
             throw new ObjectNotFoundException("Task:{$tid}");
         }
-        $obj = pg_fetch_object($ret, 0);
+        $obj = mysqli_fetch_object($ret, 0);
         if(!$obj)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
         $task = new Task();
         $task->id = $obj->{$this->idField};
@@ -106,9 +96,9 @@ EOF;
         $ret = pg_query($this->db, $query);
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
-        $deleted = pg_affected_rows($ret);
+        $deleted = mysqli_affected_rows($ret);
         if($deleted == 0)
         {
             throw new ObjectNotFoundException("Task:{$tid}");
@@ -126,15 +116,15 @@ EOF;
             $length = $this->listLenMax;
         }
         $query =<<<EOF
-        SELECT * FROM {$this->tableName} LIMIT {$length} OFFSET {$offset};
+        SELECT * FROM {$this->tableName} LIMIT {$offset}, {$length};
 EOF;
-        $ret = pg_query($this->db, $query);
+        $ret = mysqli_query($this->db);
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
         $list = new TasksList();
-        while($obj = pg_fetch_object($ret))
+        while($obj = mysqli_fetch_object($ret))
         {
             $task = new Task();
             $task->id = $obj->{$this->idField};
@@ -148,19 +138,19 @@ EOF;
 
     public function BeginTransaction()
     {
-        $ret = pg_query($this->db, "BEGIN TRANSACTION;");
+        $ret = mysqli_query($this->db, "START TRANSACTION;");
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
     }
 
     public function CommitTransaction()
     {
-        $ret = pg_query($this->db, "COMMIT;");
+        $ret = mysqli_query($this->db, "COMMIT;");
         if(!$ret)
         {
-            throw new DatabaseException(pg_last_error($this->db));
+            throw new DatabaseException(mysqli_error($this->db));
         }
     }
 }
